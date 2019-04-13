@@ -19,8 +19,8 @@ Public Class FormMain
 
     Private interpolationLength As Integer = 3
 
-    Private receivedFramesBuffer As New Queue(Of Bitmap)
-    Private interpolatedFramesBuffer As New Queue(Of Bitmap)
+    Private ReadOnly receivedFramesBuffer As New Queue(Of Bitmap)
+    Private ReadOnly interpolatedFramesBuffer As New Queue(Of Bitmap)
 
     Private playbackThread As Thread
     Private interpolationThread As Thread
@@ -28,8 +28,8 @@ Public Class FormMain
 
     Private lastInterpolatedFrame As New Bitmap(1, 1)
 
-    Private morphFilter As New AForge.Imaging.Filters.Morph()
-    Private moveTowardsFilter As New AForge.Imaging.Filters.MoveTowards()
+    Private ReadOnly morphFilter As New AForge.Imaging.Filters.Morph()
+    Private ReadOnly moveTowardsFilter As New AForge.Imaging.Filters.MoveTowards()
 
     Private f1 As Font = New Font("Tahoma", 32, FontStyle.Bold)
     Private f2 As Font = New Font("Consolas", 16, FontStyle.Bold)
@@ -67,12 +67,10 @@ Public Class FormMain
                 mMedia.Position = 0
             Case Keys.M
                 ResetBuffers()
-
                 mFilterMode += 1
                 mFilterMode = mFilterMode Mod (FilterMode.MoveThenMorph + 1)
             Case Keys.Enter
                 ResetBuffers()
-
                 interpolationLength = 0
                 mUseFilters = False
                 mFilterMode = 0
@@ -185,7 +183,6 @@ Public Class FormMain
 
                             For i As Integer = 0 To interpolationLength - 1
                                 morphFilter.SourcePercent = i / interpolationLength
-
                                 interpolatedFramesBuffer.Enqueue(morphFilter.Apply(receivedFramesBuffer(0)))
                             Next
 
@@ -195,7 +192,6 @@ Public Class FormMain
 
                             For i As Integer = 0 To interpolationLength - 1
                                 moveTowardsFilter.StepSize = 256 - 256 * (i / interpolationLength)
-
                                 interpolatedFramesBuffer.Enqueue(moveTowardsFilter.Apply(receivedFramesBuffer(0)))
                             Next
 
@@ -230,7 +226,7 @@ Public Class FormMain
                             moveTowardsFilter.OverlayImage.Dispose()
                     End Select
                 Else
-                    Using tmpBmp = receivedFramesBuffer.Dequeue()
+                    Using tmpBmp As Bitmap = receivedFramesBuffer.Dequeue()
                         For i As Integer = 0 To interpolationLength - 1
                             interpolatedFramesBuffer.Enqueue(tmpBmp.Clone())
                         Next
@@ -244,21 +240,21 @@ Public Class FormMain
         Dim g As Graphics = e.Graphics
 
         If interpolatedFramesBuffer.Count > 0 Then
-            Dim bmp = interpolatedFramesBuffer.Dequeue()
+            Dim bmp As Bitmap = interpolatedFramesBuffer.Dequeue()
             g.DrawImage(bmp, Me.DisplayRectangle)
-            'g.DrawImageFast(bmp, Point.Empty)
+            'g.DrawImageFast(bmp, Point.Empty) ' DrawImageFast does not (yet) support scaling
 
             lastInterpolatedFrame.Dispose()
             lastInterpolatedFrame = bmp
         Else
-            'g.DrawImageFast(lastInterpolatedFrame, Point.Empty)
             g.DrawImage(lastInterpolatedFrame, Me.DisplayRectangle)
+            'g.DrawImageFast(lastInterpolatedFrame, Point.Empty)
         End If
 
         g.FillRectangle(b2, 0, 0, 360, 50 + 22 * (6 + 1))
-        g.DrawString(interpolationLength.ToString() + ": " + receivedFramesBuffer.Count.ToString() + "/" + interpolatedFramesBuffer.Count.ToString(), f1, b1, 0, 0)
-        g.DrawString(String.Format("[F]ilter:     O{0}", If(mUseFilters, "n", "ff")), f2, b1, 0, 50 + 22 * 0)
-        g.DrawString(String.Format("[M]ode:       {0}", mFilterMode.ToString()), f2, If(mUseFilters, b3, b1), 0, 50 + +22 * 1)
+        g.DrawString($"{interpolationLength}: {receivedFramesBuffer.Count}/{interpolatedFramesBuffer.Count}", f1, b1, 0, 0)
+        g.DrawString($"[F]ilter:     O{If(mUseFilters, "n", "ff")}", f2, b1, 0, 50 + 22 * 0)
+        g.DrawString($"[M]ode:       {mFilterMode}", f2, If(mUseFilters, b3, b1), 0, 50 + +22 * 1)
         g.DrawString("[Up Arrow]:   Slow Down", f2, b1, 0, 55 + 22 * 2)
         g.DrawString("[Down Arrow]: Speed Up", f2, b1, 0, 55 + 22 * 3)
         g.DrawString("[SPACE]:      Restart", f2, b1, 0, 60 + 22 * 4)
@@ -273,8 +269,9 @@ Public Class FormMain
         If bmp.PixelFormat = Imaging.PixelFormat.Format24bppRgb Then Return bmp.Clone()
 
         Dim tmpBmp As New Bitmap(bmp.Width, bmp.Height, Imaging.PixelFormat.Format24bppRgb)
-        Using g = Graphics.FromImage(tmpBmp)
-            g.DrawImageUnscaled(bmp, 0, 0)
+        Using g As Graphics = Graphics.FromImage(tmpBmp)
+            'g.DrawImageUnscaled(bmp, 0, 0)
+            g.DrawImageFast(bmp, Point.Empty)
         End Using
 
         bmp.Dispose()
