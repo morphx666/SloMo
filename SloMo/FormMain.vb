@@ -100,18 +100,22 @@ Public Class FormMain
                                        End If
                                    End Sub
 
-        LoadMedia(IO.Path.Combine(My.Application.Info.DirectoryPath, "Videos\TOR@BAL- Encarnacion makes nice stretch at first base.avi"))
+        Dim videoFile As String = IO.Path.Combine(My.Application.Info.DirectoryPath, "Videos\TOR@BAL- Encarnacion makes nice stretch at first base.avi")
+        If Not IO.File.Exists(videoFile) Then
+            Using dlg As New OpenFileDialog()
+                dlg.Title = "Select Video File"
+                dlg.Filter = "AVI Files|*.avi"
+                If dlg.ShowDialog(Me) = DialogResult.OK Then videoFile = dlg.FileName
+            End Using
+        End If
+        LoadMedia(videoFile)
 
-        playbackThread = New Thread(AddressOf PlaybackSub) With {
-            .IsBackground = True
-        }
+        playbackThread = New Thread(AddressOf PlaybackSub) With {.IsBackground = True}
         playbackThread.Start()
 
         interpolationEvent = New AutoResetEvent(False)
 
-        interpolationThread = New Thread(AddressOf InterpolateFrames) With {
-            .IsBackground = True
-        }
+        interpolationThread = New Thread(AddressOf InterpolateFrames) With {.IsBackground = True}
         interpolationThread.Start()
 
         mMediaState = MediaPlaybackStateConstants.Playing
